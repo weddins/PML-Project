@@ -10,7 +10,7 @@
 
 <meta name="author" content="Bill Eddins" />
 
-<meta name="date" content="2015-10-20" />
+<meta name="date" content="2015-10-24" />
 
 <title>Machine Learning Exercise</title>
 
@@ -64,40 +64,39 @@ img {
 <div id="header">
 <h1 class="title">Machine Learning Exercise</h1>
 <h4 class="author"><em>Bill Eddins</em></h4>
-<h4 class="date"><em>2015-10-20</em></h4>
+<h4 class="date"><em>2015-10-24</em></h4>
 </div>
 
 
 <div id="overview" class="section level1">
 <h1>Overview</h1>
-<p>The purpose of this report is to get credit for an online course in machine learning. See the following link for more information. Look for the course titled ‘Practical Machine Learning’.</p>
+<p>The purpose of this report is to get credit for an online course in machine learning and to predict the type of barbell activity being performed. See the following link for more information on this certification. Look for the course titled ‘Practical Machine Learning’.</p>
 <p><a href="https://www.coursera.org/specialization/jhudatascience/1?utm_source=catalog">Data Science Specialization</a></p>
-<p>The data come from a reseach study of subjects conducting physical activites using a barbell while being monitored by wearable devices. See the following link.</p>
+<p>The data come from a reseach study of subjects conducting physical activites using a barbell while being monitored by wearable devices, i.e. the Microsoft Kinect. Each record in the dataset represents a subject doing a barbbell curl. There are five classes or types of curl exercise. One was the correct class, the other four are themes on incorrect techniques. See the following link.</p>
 <p><a href="http://groupware.les.inf.puc-rio.br/har">Human Activity Recognition</a></p>
 <div id="a-machine-learning-algorithm-predicting-activity-quality" class="section level2">
 <h2>A machine learning algorithm predicting activity quality</h2>
 <p>All R code for this report can be found in the appendix. The outcome of the study is to build a model that predicts barbell activies using a testing file and a training file. The response variable is ‘classe’ which designates a row as being one of the five classes of barbell activities. In order to reduce out of sample errors, the testing file is partitioned into training, validating and testing data sets. Then, the training file which has 20 records will be used to predict the type of exercise.</p>
-<p>Training consists of building three classification models using a generalized boosted model, a random forest model, and a treebag model. The varImp was generated on each model to determine the variables which have the most impact on the response variable. Validating consists of predicting classe membership for each of the classification models and then picking the best model by use of a confusionMatrix. The reader should note that the random forest model is the best one to use for testing since it has Accuracy equal to 0.9829.</p>
+<p>Training consists of building three classification models using a generalized boosted model, a random forest model, and a treebag model. The varImp was generated on each model to determine the variables which have the most impact on the response variable. The output of the training models is assesed via the resamples funtion to get a preview of what might be the best model. The best model so far appears to be the random forest with and accuracy of 0.9725. The reader should see the boxplot diagram.</p>
+<p>Validating consists of predicting ‘classe’ membership for each of the classification models and then picking the best classification model by use of a confusionMatrix. The reader should note that the random forest model is the best one to use for testing since it has Accuracy equal to 0.9829.</p>
 <p>Testing will narrow down the list of predictors to the 10 predictors that were identified by the impVar function during validating. Those predictors include: roll_ belt, yaw_belt, pitch_belt, magnet_dumbbell_y, magnet_dumbbell_z, pitch_forearm, roll_forearm, accel_dumbbell_y, roll_dumbbell, and magnet_belt_y.</p>
 </div>
 <div id="conclusions" class="section level2">
 <h2>Conclusions</h2>
-<p>This report has controlled for out of sample error by two techniques. First, train control parameters were passed to the train method to do cross validation. Second, a three phased approach to constructing the final model was employed including a training, validating, and testing phases. Then, 10 variables were identified and were fitted during the testing phase. After that, the testing file with twenty records was input and the type of barbell activity was predicted.</p>
-<p>If I get time, I will come back, discuss more and fit some kind of graphs.</p>
+<p>This report has controlled for out of sample error by two techniques. First, train control parameters were passed to the train method to do cross validation. Second, a three phased approach to constructing the final model was employed including training, validating, and testing phases. Then, 10 variables were identified and were fitted during the testing phase. After that, the testing file with twenty records was input and the type of barbell activity was predicted.</p>
 </div>
 <div id="appendix" class="section level2">
 <h2>Appendix</h2>
-<pre class="r"><code>chrFile = &quot;pml-training.csv&quot;; curls &lt;- read.csv(chrFile, header=TRUE)
+<pre class="r"><code>setwd(&quot;C:/coursera/DataScientist/8-PracticalML/Project&quot;)
+chrFile = &quot;pml-training.csv&quot;; curls &lt;- read.csv(chrFile, header=TRUE)
 dim(curls)</code></pre>
 <pre><code>## [1] 19622   160</code></pre>
 <pre class="r"><code>#Remove unnecessary columns (All NAs, calced cols, and unrelated cols)
 curls &lt;- curls[, -c(1:7, 12:36, 50:59, 69:83, 87:101, 103:112, 125:139, 141:150)]
-curls[is.na(curls)] &lt;- 0
-prop.table(table(curls$classe))</code></pre>
+curls[is.na(curls)] &lt;- 0; prop.table(table(curls$classe)); dim(curls)</code></pre>
 <pre><code>## 
 ##         A         B         C         D         E 
 ## 0.2843747 0.1935073 0.1743961 0.1638977 0.1838243</code></pre>
-<pre class="r"><code>dim(curls)</code></pre>
 <pre><code>## [1] 19622    53</code></pre>
 <pre class="r"><code>#See following url for more info on this technique
 #http://amunategui.github.io/blending-models/
@@ -106,15 +105,74 @@ training &lt;- curls[0:split,]; validating &lt;- curls[(split+1):(split*2),]
 testing &lt;- curls[(split*2+1):nrow(curls),]; labelName &lt;- 'classe'</code></pre>
 <pre class="r"><code>#Create list of predictors, cv control and three models (gbm, rf and treebag)
 predictors &lt;- names(training)[names(training) != labelName]
-myControl &lt;- trainControl(method = &quot;cv&quot;, number = 3, repeats = 1, returnResamp = &quot;none&quot;)
+myControl &lt;- trainControl(method = &quot;cv&quot;, number = 3, repeats = 1,
+        summaryFunction=defaultSummary)
 mod.gb &lt;- train(training[,predictors], training[,labelName], method='gbm', 
         trControl=myControl, verbose=FALSE)
-mod.rf &lt;- train(training[,predictors], training[,labelName], method='rf', trControl=myControl)
+mod.rf &lt;- train(training[,predictors], training[,labelName], method='rf',
+        trControl=myControl)
 mod.tb &lt;- train(training[,predictors], training[,labelName], method='treebag',
         trControl=myControl)
 gb.vars &lt;- varImp(mod.gb); rf.vars &lt;- varImp(mod.rf); tb.vars &lt;- varImp(mod.tb)
 the.vars &lt;- rbind(gb.vars$importance, rf.vars$importance, tb.vars$importance)
 write.csv(the.vars,&quot;the.vars.csv&quot;)</code></pre>
+<pre class="r"><code>resamp &lt;- resamples(list(GBM=mod.gb, RF=mod.rf, TB=mod.tb))
+resamp; summary(resamp); bwplot(resamp); difValues &lt;- diff(resamp)</code></pre>
+<pre><code>## 
+## Call:
+## resamples.default(x = list(GBM = mod.gb, RF = mod.rf, TB = mod.tb))
+## 
+## Models: GBM, RF, TB 
+## Number of resamples: 3 
+## Performance metrics: Accuracy, Kappa 
+## Time estimates for: everything, final model fit</code></pre>
+<pre><code>## 
+## Call:
+## summary.resamples(object = resamp)
+## 
+## Models: GBM, RF, TB 
+## Number of resamples: 3 
+## 
+## Accuracy 
+##       Min. 1st Qu. Median   Mean 3rd Qu.   Max. NA's
+## GBM 0.9445  0.9470 0.9495 0.9495  0.9520 0.9546    0
+## RF  0.9679  0.9695 0.9711 0.9725  0.9748 0.9785    0
+## TB  0.9601  0.9608 0.9615 0.9622  0.9633 0.9651    0
+## 
+## Kappa 
+##       Min. 1st Qu. Median   Mean 3rd Qu.   Max. NA's
+## GBM 0.9299  0.9330 0.9362 0.9362  0.9394 0.9426    0
+## RF  0.9594  0.9614 0.9635 0.9652  0.9681 0.9727    0
+## TB  0.9495  0.9504 0.9513 0.9523  0.9536 0.9559    0</code></pre>
+<p><img src="data:image/png;base64,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" alt /></p>
+<pre class="r"><code>difValues; summary(difValues)</code></pre>
+<pre><code>## 
+## Call:
+## diff.resamples(x = resamp)
+## 
+## Models: GBM, RF, TB 
+## Metrics: Accuracy, Kappa 
+## Number of differences: 3 
+## p-value adjustment: bonferroni</code></pre>
+<pre><code>## 
+## Call:
+## summary.diff.resamples(object = difValues)
+## 
+## p-value adjustment: bonferroni 
+## Upper diagonal: estimates of the difference
+## Lower diagonal: p-value for H0: difference = 0
+## 
+## Accuracy 
+##     GBM     RF       TB      
+## GBM         -0.02293 -0.01269
+## RF  0.12599           0.01024
+## TB  0.21602 0.07306          
+## 
+## Kappa 
+##     GBM    RF       TB      
+## GBM        -0.02899 -0.01604
+## RF  0.1259           0.01295
+## TB  0.2162 0.0734</code></pre>
 <pre class="r"><code>#Predict classe membership using the validating data
 validating$prob.gb &lt;- predict(object=mod.gb, validating[,predictors])
 validating$prob.rf &lt;- predict(object=mod.rf, validating[,predictors])
